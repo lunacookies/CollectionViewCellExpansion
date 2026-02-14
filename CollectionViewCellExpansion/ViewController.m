@@ -1,23 +1,21 @@
 #import "ViewController.h"
+#import "Layout.h"
 
 @interface Cell : UICollectionViewListCell
 @property (nonatomic, copy) NSString *text;
-@property (nonatomic, assign) BOOL expanded;
 @end
 
 @interface ViewController ()
 @property (nonatomic, strong) UICollectionViewDiffableDataSource<NSNumber *, NSNumber *> *dataSource;
+@property (nonatomic, strong, readonly) Layout *layout;
 @end
 
 @implementation ViewController
 
 - (instancetype)init
 {
-	UICollectionLayoutListConfiguration *configuration =
-		[[UICollectionLayoutListConfiguration alloc] initWithAppearance:UICollectionLayoutListAppearancePlain];
-	UICollectionViewCompositionalLayout *layout =
-		[UICollectionViewCompositionalLayout layoutWithListConfiguration:configuration];
-	return [super initWithCollectionViewLayout:layout];
+	_layout = [[Layout alloc] init];
+	return [super initWithCollectionViewLayout:self.layout];
 }
 
 - (void)viewDidLoad {
@@ -49,16 +47,15 @@
 {
 	[self.collectionView deselectItemAtIndexPath:indexPath animated:YES];
 
-	UISpringTimingParameters *timingParameters = [[UISpringTimingParameters alloc] initWithDuration:0.3 bounce:0.3];
+	UISpringTimingParameters *timingParameters = [[UISpringTimingParameters alloc] initWithDuration:0.4 bounce:0.4];
 	UIViewPropertyAnimator *animator = [[UIViewPropertyAnimator alloc] initWithDuration:0 timingParameters:timingParameters];
 
 	[animator addAnimations:^{
-		Cell *cell = [self.collectionView cellForItemAtIndexPath:indexPath];
-		cell.expanded = !cell.expanded;
+		self.layout.selectedCellIndexPath = [self.layout.selectedCellIndexPath isEqual:indexPath] ? nil : indexPath;
 		[self.collectionView.collectionViewLayout invalidateLayout];
 		[self.collectionView layoutIfNeeded];
 	}];
-	
+
 	[animator startAnimation];
 }
 
@@ -67,7 +64,6 @@
 
 @interface Cell ()
 @property (nonatomic, strong) UILabel *label;
-@property (nonatomic, strong) NSLayoutConstraint *heightConstraint;
 @end
 
 @implementation Cell
@@ -81,26 +77,14 @@
 	self.label.translatesAutoresizingMaskIntoConstraints = NO;
 	[self.contentView addSubview:self.label];
 
-	self.heightConstraint = [self.contentView.heightAnchor constraintEqualToConstant:0];
-	self.heightConstraint.priority = UILayoutPriorityRequired - 1;
-
 	[NSLayoutConstraint activateConstraints:@[
 		[self.label.topAnchor constraintEqualToAnchor:self.contentView.topAnchor],
 		[self.label.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor],
 		[self.label.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor],
 		[self.label.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor],
-		self.heightConstraint,
 	]];
 
-	self.expanded = NO;
-
 	return self;
-}
-
-- (void)setExpanded:(BOOL)expanded
-{
-	_expanded = expanded;
-	self.heightConstraint.constant = expanded ? 100 : 44;
 }
 
 - (NSString *)text
