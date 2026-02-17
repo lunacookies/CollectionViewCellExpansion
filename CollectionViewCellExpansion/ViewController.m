@@ -3,6 +3,7 @@
 
 @interface Cell : UICollectionViewListCell
 @property (nonatomic, copy) NSString *text;
+@property (nonatomic, assign, getter=isExpanded) BOOL expanded;
 @end
 
 @interface ViewController ()
@@ -51,7 +52,8 @@
 	UIViewPropertyAnimator *animator = [[UIViewPropertyAnimator alloc] initWithDuration:0 timingParameters:timingParameters];
 
 	[animator addAnimations:^{
-		self.layout.selectedCellIndexPath = [self.layout.selectedCellIndexPath isEqual:indexPath] ? nil : indexPath;
+		Cell *cell = [self.collectionView cellForItemAtIndexPath:indexPath];
+		cell.expanded = !cell.expanded;
 		[self.collectionView.collectionViewLayout invalidateLayout];
 		[self.collectionView layoutIfNeeded];
 	}];
@@ -63,7 +65,8 @@
 @end
 
 @interface Cell ()
-@property (nonatomic, strong) UILabel *label;
+@property (nonatomic, strong, readonly) UILabel *label;
+@property (nonatomic, strong, readonly) NSLayoutConstraint *bottomConstraint;
 @end
 
 @implementation Cell
@@ -73,16 +76,32 @@
 	self = [super initWithFrame:frame];
 	if (!self) return nil;
 
-	self.label = [[UILabel alloc] init];
+	_label = [[UILabel alloc] init];
+	_label.backgroundColor = UIColor.redColor;
+
+	UIView *wrapper = [[UIView alloc] init];
+
 	self.label.translatesAutoresizingMaskIntoConstraints = NO;
-	[self.contentView addSubview:self.label];
+	wrapper.translatesAutoresizingMaskIntoConstraints = NO;
+	[wrapper addSubview:self.label];
+	[self.contentView addSubview:wrapper];
+
+	_bottomConstraint = [wrapper.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor];
+	_bottomConstraint.priority = UILayoutPriorityRequired - 1;
 
 	[NSLayoutConstraint activateConstraints:@[
-		[self.label.topAnchor constraintEqualToAnchor:self.contentView.topAnchor],
-		[self.label.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor],
-		[self.label.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor],
-		[self.label.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor],
+		[self.label.topAnchor constraintEqualToAnchor:wrapper.topAnchor],
+		[self.label.leadingAnchor constraintEqualToAnchor:wrapper.leadingAnchor],
+		[self.label.trailingAnchor constraintEqualToAnchor:wrapper.trailingAnchor],
+		[self.label.bottomAnchor constraintEqualToAnchor:wrapper.bottomAnchor],
+
+		[wrapper.topAnchor constraintEqualToAnchor:self.contentView.topAnchor],
+		[wrapper.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor],
+		[wrapper.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor],
+		self.bottomConstraint,
 	]];
+
+	self.expanded = NO;
 
 	return self;
 }
@@ -95,6 +114,12 @@
 - (void)setText:(NSString *)text
 {
 	self.label.text = text;
+}
+
+- (void)setExpanded:(BOOL)expanded
+{
+	_expanded = expanded;
+	self.bottomConstraint.constant = expanded ? -100 : 0;
 }
 
 @end
